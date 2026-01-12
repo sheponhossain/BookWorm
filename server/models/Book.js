@@ -1,18 +1,22 @@
-// models/Book.js (সম্ভাব্য স্ট্রাকচার)
+const mongoose = require('mongoose'); // এই লাইনটি মিসিং ছিল
+
 const reviewSchema = new mongoose.Schema({
-  userId: mongoose.Schema.Types.ObjectId,
+  userId: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
   userName: String,
-  rating: Number,
-  comment: String,
-  isApproved: { type: Boolean, default: false }, // অ্যাডমিন এপ্রুভালের জন্য
+  rating: { type: Number, required: true },
+  comment: { type: String, required: true },
+  isApproved: { type: Boolean, default: false },
+  createdAt: { type: Date, default: Date.now },
 });
 
 const bookSchema = new mongoose.Schema({
-  title: String,
-  author: String,
+  title: { type: String, required: true },
+  author: { type: String, required: true },
   genre: String,
   coverImage: String,
   description: String,
-  reviews: [reviewSchema],
-  // ইউজারদের সেলফ ট্র্যাকিং ডাটাবেসে আলাদা কালেকশনে রাখা ভালো
+  reviews: [reviewSchema], // এখানে আমরা রিভিউ স্কিমাটি যুক্ত করলাম
+  createdAt: { type: Date, default: Date.now },
 });
+
+module.exports = mongoose.model('Book', bookSchema);

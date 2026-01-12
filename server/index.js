@@ -14,9 +14,9 @@ const app = express();
 // CORS
 app.use(
   cors({
-    origin: 'http://localhost:3000',
+    origin: 'http://localhost:3000', // আপনার ফ্রন্টএন্ডের URL
     methods: ['GET', 'POST', 'PUT', 'DELETE'],
-    allowedHeaders: ['Content-Type', 'user-role'],
+    allowedHeaders: ['Content-Type', 'user-role', 'Authorization'], // headers গুলো চেক করুন
   })
 );
 
