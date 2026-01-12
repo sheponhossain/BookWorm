@@ -1,23 +1,35 @@
 const express = require('express');
 const cors = require('cors');
-require('dotenv').config(); // এটি সবার উপরে থাকতে হবে 👈
+require('dotenv').config();
 const connectDB = require('./config/db');
+
+// Routes Import
 const authRoutes = require('./routes/authRoutes');
 const bookRoutes = require('./routes/bookRoutes');
+const adminRoutes = require('./routes/adminRoutes'); // New
+const tutorialRoutes = require('./routes/tutorialRoutes'); // New
 
 const app = express();
-app.use(cors());
+
+// CORS
+app.use(
+  cors({
+    origin: 'http://localhost:3000',
+    methods: ['GET', 'POST', 'PUT', 'DELETE'],
+    allowedHeaders: ['Content-Type', 'user-role'],
+  })
+);
+
 app.use(express.json());
-// const cors = require('cors');
-// এই ফাইলটি আপনি তৈরি করেছিলেন
-// ... অন্য কোড
-// এটি নিশ্চিত করে যে /api/books/add কাজ করবে
 
-// Database Connection
-connectDB(); // এখানে কানেক্ট হওয়ার সময় সে .env ফাইলটি খুঁজবে
+// Database
+connectDB();
 
+// Routes Registration
 app.use('/api/auth', authRoutes);
 app.use('/api/books', bookRoutes);
+app.use('/api/admin', adminRoutes); // Admin Dashboard functions
+app.use('/api/tutorials', tutorialRoutes); // Tutorial functions
 
 app.get('/', (req, res) => res.send('Server is running'));
 
