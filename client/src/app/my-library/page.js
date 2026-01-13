@@ -1,22 +1,65 @@
 /* eslint-disable @next/next/no-img-element */
 'use client';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react'; // useMemo যুক্ত করা হয়েছে ক্যালকুলেশনের জন্য
 import { useAuth } from '@/context/AuthContext';
 import { useRouter } from 'next/navigation';
 import toast, { Toaster } from 'react-hot-toast';
-import ReaderView from '@/components/ReaderView'; // ReaderView ইম্পোর্ট নিশ্চিত করুন
+import ReaderView from '@/components/ReaderView';
+import { PieChart, Pie, Cell, Tooltip, ResponsiveContainer } from 'recharts';
 
 export default function MyLibraryPage() {
   const { user, loading: authLoading } = useAuth();
   const router = useRouter();
   const [savedBooks, setSavedBooks] = useState([]);
   const [loading, setLoading] = useState(true);
-
-  // রিডার ভিউ কন্ট্রোল করার জন্য স্টেট
   const [selectedBook, setSelectedBook] = useState(null);
   const [isReading, setIsReading] = useState(false);
 
   const statusOptions = ['Want to Read', 'Currently Reading', 'Read'];
+
+  // --- DYNAMIC LOGIC STARTS HERE (No design change) ---
+  const stats = useMemo(() => {
+    const readBooks = savedBooks.filter((b) => b.status === 'Read');
+    const currentlyReading = savedBooks.filter(
+      (b) => b.status === 'Currently Reading'
+    );
+
+    // ডাইনামিক গোল ক্যালকুলেশন
+    const annualGoal = 50;
+    const progress = Math.min(
+      Math.round((readBooks.length / annualGoal) * 100),
+      100
+    );
+
+    // ডাইনামিক জেনার (Genre) চার্ট ডাটা
+    const genreMap = {};
+    savedBooks.forEach((book) => {
+      const g = book.category || 'Other';
+      genreMap[g] = (genreMap[g] || 0) + 1;
+    });
+    const genreData = Object.keys(genreMap).map((name) => ({
+      name,
+      value: genreMap[name],
+    }));
+
+    // ডাইনামিক পেজ কাউন্ট (গড় ২৫০ পেজ ধরে)
+    const totalPages = readBooks.reduce(
+      (acc, book) => acc + (book.pageCount || 250),
+      0
+    );
+
+    return {
+      annualGoal,
+      readCount: readBooks.length,
+      progress,
+      genreData,
+      totalPages,
+      currentCount: currentlyReading.length,
+    };
+  }, [savedBooks]);
+
+  const COLORS = ['#4A3728', '#C1A88D', '#E5DCC3', '#D4C3A3', '#8B735B'];
+  // --- DYNAMIC LOGIC ENDS HERE ---
 
   useEffect(() => {
     if (!authLoading && !user) {
@@ -31,7 +74,6 @@ export default function MyLibraryPage() {
       const books = keys
         .filter((key) => key.startsWith('book_shelf_'))
         .map((key) => JSON.parse(localStorage.getItem(key)));
-
       setSavedBooks(books);
     } catch (error) {
       console.error('Error loading library:', error);
@@ -40,9 +82,7 @@ export default function MyLibraryPage() {
   };
 
   useEffect(() => {
-    if (user) {
-      fetchMyLibrary();
-    }
+    if (user) fetchMyLibrary();
   }, [user]);
 
   const updateStatus = (id, newStatus) => {
@@ -54,7 +94,6 @@ export default function MyLibraryPage() {
       }
       return book;
     });
-
     setSavedBooks(updatedBooks);
     toast.success(`Moved to ${newStatus}`, {
       style: {
@@ -75,7 +114,6 @@ export default function MyLibraryPage() {
     });
   };
 
-  // রিড বাটনের ফাংশন
   const handleRead = (book) => {
     setSelectedBook(book);
     setIsReading(true);
@@ -97,13 +135,12 @@ export default function MyLibraryPage() {
     <div className="min-h-screen bg-[#FDFBF7] text-[#4A3728] p-8 md:p-12">
       <Toaster position="bottom-right" />
 
-      {/* রিডার ভিউ ওপেন হলে এটি দেখাবে */}
       {isReading && selectedBook && (
         <ReaderView
           book={selectedBook}
           onBack={() => {
             setIsReading(false);
-            fetchMyLibrary(); // লাইব্রেরি রিফ্রেশ করা
+            fetchMyLibrary();
           }}
           onShelfChange={updateStatus}
         />
@@ -129,12 +166,124 @@ export default function MyLibraryPage() {
             )}
           </header>
 
+          {/* --- NEW DYNAMIC STATS SECTION --- */}
+          <section className="max-w-7xl mx-auto mb-20 grid grid-cols-1 lg:grid-cols-3 gap-8">
+            <div className="bg-white rounded-[40px] p-8 border border-[#E5DCC3] flex flex-col items-center justify-center shadow-sm">
+              <h3 className="text-[10px] font-black uppercase tracking-widest mb-6">
+                2026 Reading Goal
+              </h3>
+              <div className="relative w-44 h-44">
+                <svg className="w-full h-full -rotate-90" viewBox="0 0 36 36">
+                  <circle
+                    cx="18"
+                    cy="18"
+                    r="16"
+                    fill="none"
+                    className="text-[#F8F5F0]"
+                    strokeWidth="2"
+                    stroke="currentColor"
+                  />
+                  <circle
+                    cx="18"
+                    cy="18"
+                    r="16"
+                    fill="none"
+                    className="text-[#C1A88D] transition-all duration-1000"
+                    strokeWidth="2"
+                    strokeDasharray={`${stats.progress}, 100`}
+                    strokeDashcap="round"
+                    stroke="currentColor"
+                  />
+                </svg>
+                <div className="absolute inset-0 flex flex-col items-center justify-center">
+                  <span className="text-4xl font-serif font-bold">
+                    {stats.readCount}
+                  </span>
+                  <span className="text-[10px] uppercase font-black text-gray-400">
+                    of {stats.annualGoal} books
+                  </span>
+                </div>
+              </div>
+              <p className="mt-6 italic text-xs text-gray-400">
+                You have reached {stats.progress}% of your goal
+              </p>
+            </div>
+
+            <div className="lg:col-span-2 bg-white rounded-[40px] p-10 border border-[#E5DCC3] grid grid-cols-1 md:grid-cols-2 gap-10 shadow-sm">
+              <div className="h-full min-h-[180px]">
+                <h4 className="text-[10px] font-black uppercase tracking-[3px] mb-6 text-[#C1A88D]">
+                  Reading Interests
+                </h4>
+                <ResponsiveContainer width="100%" height="100%">
+                  <PieChart>
+                    <Pie
+                      data={
+                        stats.genreData.length
+                          ? stats.genreData
+                          : [{ name: 'Empty', value: 1 }]
+                      }
+                      innerRadius={50}
+                      outerRadius={70}
+                      paddingAngle={8}
+                      dataKey="value"
+                    >
+                      {stats.genreData.map((_, index) => (
+                        <Cell
+                          key={index}
+                          fill={COLORS[index % COLORS.length]}
+                          stroke="none"
+                        />
+                      ))}
+                      {!stats.genreData.length && <Cell fill="#F8F5F0" />}
+                    </Pie>
+                    <Tooltip
+                      contentStyle={{
+                        borderRadius: '15px',
+                        border: 'none',
+                        boxShadow: '0 10px 15px -3px rgba(0,0,0,0.1)',
+                      }}
+                    />
+                  </PieChart>
+                </ResponsiveContainer>
+              </div>
+              <div className="flex flex-col justify-center space-y-6">
+                {[
+                  {
+                    label: 'Total Pages',
+                    value: stats.totalPages.toLocaleString(),
+                    unit: 'pg',
+                  },
+                  {
+                    label: 'Currently Reading',
+                    value: stats.currentCount,
+                    unit: 'books',
+                  },
+                  { label: 'Reading Streak', value: '12', unit: 'days' },
+                ].map((item, idx) => (
+                  <div
+                    key={idx}
+                    className="flex justify-between items-end border-b border-[#F8F5F0] pb-3"
+                  >
+                    <span className="text-[10px] font-black uppercase tracking-widest text-gray-400">
+                      {item.label}
+                    </span>
+                    <span className="font-serif italic text-2xl">
+                      {item.value}{' '}
+                      <span className="text-[10px] not-italic font-bold text-[#C1A88D]">
+                        {item.unit}
+                      </span>
+                    </span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </section>
+
           <div className="max-w-7xl mx-auto space-y-16">
             {statusOptions.map((shelfStatus) => {
               const booksInShelf = savedBooks.filter(
                 (b) => b.status === shelfStatus
               );
-
               return (
                 <div key={shelfStatus} className="space-y-6">
                   <div className="flex items-center gap-4">
@@ -165,7 +314,6 @@ export default function MyLibraryPage() {
                               alt={book.title}
                             />
                           </div>
-
                           <div className="flex flex-col justify-between py-1 w-full overflow-hidden">
                             <div>
                               <h3 className="text-lg font-bold leading-tight truncate">
@@ -174,7 +322,6 @@ export default function MyLibraryPage() {
                               <p className="text-gray-400 text-xs italic mb-4">
                                 by {book.author}
                               </p>
-
                               <select
                                 value={book.status}
                                 onChange={(e) =>
@@ -189,7 +336,6 @@ export default function MyLibraryPage() {
                                 ))}
                               </select>
                             </div>
-
                             <div className="flex items-center gap-4">
                               <button
                                 onClick={() => removeBook(book._id)}
@@ -197,8 +343,6 @@ export default function MyLibraryPage() {
                               >
                                 ✕ Remove
                               </button>
-
-                              {/* বই পড়া হয়ে গেলে (Read স্ট্যাটাস) Read বাটন দেখাবে না */}
                               {book.status !== 'Read' && (
                                 <button
                                   onClick={() => handleRead(book)}
