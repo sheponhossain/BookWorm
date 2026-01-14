@@ -8,28 +8,17 @@ const app = express();
 
 connectDB();
 
-const corsOptions = {
-  origin: 'https://book-worm-front-end-orpin.vercel.app',
-  credentials: true,
-  methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization', 'user-role']
-};
-
-app.use(cors(corsOptions));
-
-app.use(cors({
-  origin: "https://book-worm-front-end-orpin.vercel.app",
-  credentials: true,
-  methods: ["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"]
-}));
-
 app.use((req, res, next) => {
-  res.header("Access-Control-Allow-Origin", "https://book-worm-front-end-orpin.vercel.app");
-  res.header("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, PATCH, OPTIONS");
-  res.header("Access-Control-Allow-Headers", "Content-Type, Authorization");
-  res.header("Access-Control-Allow-Credentials", "true");
-  if (req.method === "OPTIONS") {
-    return res.sendStatus(200);
+  const origin = req.headers.origin;
+  const allowedOrigins = ['https://book-worm-front-end-orpin.vercel.app'];
+  if (allowedOrigins.includes(origin)) {
+    res.setHeader('Access-Control-Allow-Origin', origin);
+  }
+  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, PATCH, OPTIONS');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Requested-With');
+  res.setHeader('Access-Control-Allow-Credentials', 'true');
+  if (req.method === 'OPTIONS') {
+    return res.status(200).end();
   }
   next();
 });
