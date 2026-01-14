@@ -14,7 +14,7 @@ export default function LoginPage() {
     setLoading(true);
     try {
       const res = await axios.post(
-        'http://localhost:5000/api/auth/login',
+        'https://book-worm-server-tau.vercel.app/api/auth/login',
         formData
       );
 

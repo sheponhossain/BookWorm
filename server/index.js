@@ -200,6 +200,13 @@ app.patch('/api/admin/reviews/moderate', async (req, res) => {
   }
 });
 
+app.use(
+  cors({
+    origin: 'https://your-client-project.vercel.app', // আপনার ফ্রন্টএন্ড লিংক
+    credentials: true,
+  })
+);
+
 const authRoutes = require('./routes/authRoutes');
 const bookRoutes = require('./routes/bookRoutes');
 const adminRoutes = require('./routes/adminRoutes');
